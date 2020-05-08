@@ -3,10 +3,10 @@ using System.IO;
 using DiscUtils;
 using DiscUtils.Ntfs;
 using DiscUtils.Setup;
-using DiscUtils.Vmdk;
 using System.Collections.Generic;
 using System.Linq;
-using DiscUtils.Ntfs.Internals;
+using DiscUtils.Vhd;
+
 
 
 namespace vmdk
@@ -15,14 +15,18 @@ namespace vmdk
     {
         public static string GetArgument(IEnumerable<string> args, string option)
             => args.SkipWhile(i => i != option).Skip(1).Take(1).FirstOrDefault();
-
+        
         static void Main(string[] args)
         {
             SetupHelper.RegisterAssembly(typeof(NtfsFileSystem).Assembly);
-            SetupHelper.RegisterAssembly(typeof(Disk).Assembly);
+            SetupHelper.RegisterAssembly(typeof(DiscUtils.Vmdk.Disk).Assembly);
             SetupHelper.RegisterAssembly(typeof(VirtualDiskManager).Assembly);
-            if (args.Length != 0 && GetArgument(args, "--command").Length != 0)
+            SetupHelper.RegisterAssembly(typeof(VirtualDisk).Assembly);
+            SetupHelper.RegisterAssembly((typeof(DiscUtils.Vhd.Disk).Assembly));
+            
+            if (args.Length != 0 && !string.IsNullOrEmpty(GetArgument(args, "--command")))
             {
+               
                 string command = GetArgument(args, "--command");
                 if (command.ToLower() == "dir" && GetArgument(args, "--source") != null)
                 {
@@ -70,34 +74,34 @@ namespace vmdk
         public static void GetHelp()
         {
             Console.WriteLine("\r\nvVvVvVvVmMmMmMmMdDdDdDdDkKkKkKkK");
-            Console.WriteLine("K       VMDK mounter v0.1      K");
+            Console.WriteLine("K   Virtual Disk mounter v0.1  K");
             Console.WriteLine("vVvVvVvVmMmMmMmMdDdDdDdDkKkKkKkK");
             Console.WriteLine("\r\n Usage:");
             Console.WriteLine("\r\n vmdkmounter.exe --command [command] [command arguments]:");
             Console.WriteLine("\r\n [?] Command: dir - Will output a dirlisting of the provided folder\n");
-            Console.WriteLine(" --source: The source of the vmdk drive. It can also accept SMB paths");
+            Console.WriteLine(" --source: The source of the virtual disk. It can also accept SMB paths");
             Console.WriteLine(
-                " --directory: The directory you want to list from the vmdk disk. If not provided will default to root path");
-            Console.WriteLine("\r\n [?] Command: cp - Will copy a file from the vmdk to the destination provided\n");
-            Console.WriteLine("--source: The source of the vmdk drive. It can also accept SMB paths");
-            Console.WriteLine("--file2copy: The file you want to copy from the vmdk disk ");
+                " --directory: The directory you want to list from the virtual disk. If not provided will default to root path");
+            Console.WriteLine("\r\n [?] Command: cp - Will copy a file from the virtual disk to the destination provided\n");
+            Console.WriteLine("--source: The source of the virtual disk drive. It can also accept SMB paths");
+            Console.WriteLine("--file2copy: The file you want to copy from the virtual disk ");
             Console.WriteLine("--destination: The destination where to save the file");
             Console.WriteLine("\r\n [?] Examples:\r\n");
             Console.WriteLine(
                 "vmdk.exe --command dir --source \\\\backupserver\\dc01\\dc01.vmdk --directory \\Windows\\System32");
             Console.WriteLine(
-                "vmdk.exe --command cp --source \\\\backupserver\\dc01\\dc01.vmdk --file2copy \\Windows\\System32\\notepad.exe --destination C:\\users\\user\\Desktop\\notepad.exe");
+                "vmdk.exe --command cp --source \\\\backupserver\\dc01\\dc01.vmdk --file2copy \\Windows\\System32\\calc.exe --destination C:\\users\\user\\Desktop\\calc.exe");
 
         }
 
-        public static void GetDirListing(string VMDKpath, string directory)
+        public static void GetDirListing(string DiskPath, string directory)
         {
-            if (File.Exists(VMDKpath))
+            if (File.Exists(DiskPath))
             {
                 try
                 {
                     VolumeManager volMgr = new VolumeManager();
-                    VirtualDisk vhdx = VirtualDisk.OpenDisk(VMDKpath, FileAccess.Read);
+                    VirtualDisk vhdx = VirtualDisk.OpenDisk(DiskPath, FileAccess.Read);
                     volMgr.AddDisk(vhdx);
                     VolumeInfo volInfo = null;
                     if (vhdx.Partitions.Count > 1)
@@ -189,20 +193,21 @@ namespace vmdk
             }
         }
 
-        public static void GetFile(string VMDKpath, string filepath, string destinationfile)
+     
+        public static void GetFile(string DiskPath, string FilePath, string DestinationFile)
         {
-            if (File.Exists(VMDKpath) && Directory.Exists(Path.GetDirectoryName(destinationfile)))
+            if (File.Exists(DiskPath) && Directory.Exists(Path.GetDirectoryName(DestinationFile)))
             {
-                if (Path.GetFileName(destinationfile) == "")
+                if (Path.GetFileName(DestinationFile) == "")
                 {
-                    destinationfile += Path.GetFileName(filepath);
+                    DestinationFile += Path.GetFileName(FilePath);
                 }
 
                 VolumeManager volMgr = new VolumeManager();
-                VirtualDisk vhdx = VirtualDisk.OpenDisk(VMDKpath, FileAccess.Read);
-                volMgr.AddDisk(vhdx);
+                VirtualDisk disk = VirtualDisk.OpenDisk(DiskPath, FileAccess.Read);
+                volMgr.AddDisk(disk);
                 VolumeInfo volInfo = null;
-                if (vhdx.Partitions.Count > 1)
+                if (disk.Partitions.Count > 1)
                 {
                     Console.WriteLine("\r\n[*] Target has more than one partition\r\n");
                     foreach (var physVol in volMgr.GetPhysicalVolumes())
@@ -220,13 +225,13 @@ namespace vmdk
                         {
                             volInfo = volMgr.GetVolume(physVol.Identity);
                         }
-
-                        using (NtfsFileSystem vhdbNtfs = new NtfsFileSystem(physVol.Partition.Open()))
+                        DiscUtils.FileSystemInfo fsInfo = FileSystemManager.DetectFileSystems(volInfo)[0];
+                        using (NtfsFileSystem diskntfs = new NtfsFileSystem(physVol.Partition.Open()))
                         {
-                            if (vhdbNtfs.FileExists("\\\\" + filepath))
+                            if (diskntfs.FileExists("\\\\" + FilePath))
                             {
-                                long fileLength = vhdbNtfs.GetFileLength("\\\\" + filepath);
-                                using (Stream bootStream = vhdbNtfs.OpenFile("\\\\" + filepath, FileMode.Open,
+                                long fileLength = diskntfs.GetFileLength("\\\\" + FilePath);
+                                using (Stream bootStream = diskntfs.OpenFile("\\\\" + FilePath, FileMode.Open,
                                     FileAccess.Read))
                                 {
                                     byte[] file = new byte[bootStream.Length];
@@ -235,12 +240,12 @@ namespace vmdk
                                     {
                                         totalRead += bootStream.Read(file, totalRead, file.Length - totalRead);
                                         FileStream fileStream =
-                                            File.Create(destinationfile, (int) bootStream.Length);
+                                            File.Create(DestinationFile, (int) bootStream.Length);
                                         bootStream.CopyTo(fileStream);
                                         fileStream.Write(file, 0, (int) bootStream.Length);
                                     }
 
-                                    long destinationLength = new FileInfo(destinationfile).Length;
+                                    long destinationLength = new FileInfo(DestinationFile).Length;
                                     if (fileLength != destinationLength)
                                     {
                                         Console.WriteLine(
@@ -250,13 +255,13 @@ namespace vmdk
                                     else
                                     {
                                         Console.WriteLine("\r\n[*] File {0} was successfully copied to {1}",
-                                            filepath, destinationfile);
+                                            FilePath, DestinationFile);
                                     }
                                 }
                             }
                             else
                             {
-                                Console.WriteLine("\r\n [!] File {0} can not be found", filepath);
+                                Console.WriteLine("\r\n [!] File {0} can not be found", FilePath);
                             }
                         }
                     }
@@ -274,25 +279,25 @@ namespace vmdk
                         Console.WriteLine(" Disk Geometry: " + physVol.PhysicalGeometry);
                         Console.WriteLine("  First Sector: " + physVol.PhysicalStartSector);
                         Console.WriteLine();
-                        NtfsFileSystem vhdbNtfs = new NtfsFileSystem(vhdx.Partitions[0].Open());
-                        if (vhdbNtfs.FileExists("\\\\" + filepath))
+                        NtfsFileSystem diskntfs = new NtfsFileSystem(disk.Partitions[0].Open());
+                        if (diskntfs.FileExists("\\\\" + FilePath))
                         {
-                            long fileLength = vhdbNtfs.GetFileLength("\\\\" + filepath);
+                            long fileLength = diskntfs.GetFileLength("\\\\" + FilePath);
                             using (Stream bootStream =
-                                vhdbNtfs.OpenFile("\\\\" + filepath, FileMode.Open, FileAccess.Read))
+                                diskntfs.OpenFile("\\\\" + FilePath, FileMode.Open, FileAccess.Read))
                             {
                                 byte[] file = new byte[bootStream.Length];
                                 int totalRead = 0;
                                 while (totalRead < file.Length)
                                 {
                                     totalRead += bootStream.Read(file, totalRead, file.Length - totalRead);
-                                    FileStream fileStream = File.Create(destinationfile, (int) bootStream.Length);
+                                    FileStream fileStream = File.Create(DestinationFile, (int) bootStream.Length);
                                     bootStream.CopyTo(fileStream);
                                     fileStream.Write(file, 0, (int) bootStream.Length);
                                 }
                             }
 
-                            long destinationLength = new FileInfo(destinationfile).Length;
+                            long destinationLength = new FileInfo(DestinationFile).Length;
                             if (fileLength != destinationLength)
                             {
                                 Console.WriteLine(
@@ -301,13 +306,13 @@ namespace vmdk
                             }
                             else
                             {
-                                Console.WriteLine("\r\n[*] File {0} was successfully copied to {1}", filepath,
-                                    destinationfile);
+                                Console.WriteLine("\r\n[*] File {0} was successfully copied to {1}", FilePath,
+                                    DestinationFile);
                             }
                         }
                         else
                         {
-                            Console.WriteLine("\r\n [!] File {0} can not be found", filepath);
+                            Console.WriteLine("\r\n [!] File {0} can not be found", FilePath);
                         }
                     }
                 }

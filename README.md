@@ -5,7 +5,7 @@ Uses https://github.com/DiscUtils/DiscUtils lib to parse the vmdk images.
 
 Useful in cases where the vmdk is on the network and you only want to copy a single file instead of GBs (e.g ntds.dit), since it does not transfer the whole disk over the network.
 
-Project uses:
+**Project uses:**
 * Quamotion.DiscUtils.Core
 * Quamotion.DiscUtils.Ntfs
 * Quamotion.DiscUtils.Streams
@@ -31,11 +31,16 @@ cp - Will copy a file from the vmdk to the destination provided
 
 
 **Examples:**
-vmdk.exe --command dir --source \\backupserver\dc01\dc01.vmdk --directory \Windows\System32");
-vmdk.exe --command cp --source \\backupserver\dc01\dc01.vmdk --file2copy \Windows\System32\notepad.exe --destination C:\users\user\Desktop\notepad.exe
+
+vmdk.exe --command dir --source \\backupserver\dc01\dc01.vmdk --directory \Windows\System32")
+
+vmdk.exe --command cp --source \\backupserver\dc01\dc01.vmdk --file2copy \Windows\System32\calc.exe --destination C:\users\user\Desktop\calc.exe
+
             
-**WARNING - tested only with specific vmdk images and network latencies. Use at your own risk!**
+**WARNING - tested only with specific vmdk/vhd images and network latencies. Use at your own risk!**
 
 **TODO**
-Add support for FAT
-Add support for VHD
+
+Add support for filesystem detection
+
+Add support for nfs / iSCSI
