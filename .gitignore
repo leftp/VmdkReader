@@ -1,0 +1,16 @@
+
+.vs/vmdk/v15/.suo
+*.lock
+*.ide
+*.ide-shm
+*.ide-wal
+vmdk/obj/Debug/vmdk.csproj.CoreCompileInputs.cache
+vmdk/obj/Debug/vmdk.csproj.FileListAbsolute.txt
+vmdk/obj/Debug/vmdk.csprojAssemblyReference.cache
+vmdk/obj/Release/DesignTimeResolveAssemblyReferencesInput.cache
+vmdk/obj/Release/vmdk.csproj.CopyComplete
+vmdk/obj/Release/vmdk.csproj.CoreCompileInputs.cache
+vmdk/obj/Release/vmdk.csproj.FileListAbsolute.txt
+vmdk/obj/Release/vmdk.csprojAssemblyReference.cache
+vmdk/obj/Release/vmdk.exe
+vmdk/obj/Release/vmdk.pdb

@@ -46,6 +46,9 @@
     <Reference Include="DiscUtils.Streams, Version=0.15.0.0, Culture=neutral, PublicKeyToken=5fa5b410cc9c6289, processorArchitecture=MSIL">
       <HintPath>..\packages\Quamotion.DiscUtils.Streams.0.15.4\lib\net40\DiscUtils.Streams.dll</HintPath>
     </Reference>
+    <Reference Include="DiscUtils.Vhd, Version=0.15.0.0, Culture=neutral, PublicKeyToken=5fa5b410cc9c6289, processorArchitecture=MSIL">
+      <HintPath>..\packages\Quamotion.DiscUtils.Vhd.0.15.4\lib\net40\DiscUtils.Vhd.dll</HintPath>
+    </Reference>
     <Reference Include="DiscUtils.Vmdk, Version=0.15.0.0, Culture=neutral, PublicKeyToken=5fa5b410cc9c6289, processorArchitecture=MSIL">
       <HintPath>..\packages\Quamotion.DiscUtils.Vmdk.0.15.4\lib\net40\DiscUtils.Vmdk.dll</HintPath>
     </Reference>
